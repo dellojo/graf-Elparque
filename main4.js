@@ -29,19 +29,18 @@ const NOTES = [
 const WORLD_SIZE = 260;
 const TERRAIN_RES = 160;
 const TERRAIN_MAX_H = 1.8;
-const TREE_COUNT = 150;
+const TREE_COUNT = 300;           // cantidad de árboles (antes 150)
 const ROCK_COUNT = 14;
 const PLAYER_RADIUS = 0.35;
 const FOG_DENSITY = 0.032;       // más alto = más niebla
-const FLASH_INTENSITY = 60;      // brillo de la linterna
+const FLASH_INTENSITY = 150;     // brillo de la linterna (antes 60)
 const WALK_SPEED = 3.2;
 const RUN_SPEED = 6;
 const VR_WALK_SPEED = 3.5;
 const VR_STRAFE_SPEED = 3.0;
-const ARC_STEPS = 50;
-const ARC_SPEED = 7.5;
-const ARC_GRAVITY = 9.8;
-const MAX_SLOPE_DEG = 45;
+const VR_RUN_SPEED = 6.5;        // sprint en VR (más rápido que el monstruo)
+const VR_TURN_SPEED = 1.8;       // giro suave con el stick izquierdo (rad/s)
+const LEFT_STICK_TURNS = true;   // true: stick izq. gira la cámara | false: camina de lado
 const WORLD_RADIUS = WORLD_SIZE * 0.5 - 1.0; // límite invisible del bosque
 const GROUND_URL = 'assets/textures/pasto.jpg';
 const NIGHT = 0x04070d;
@@ -99,7 +98,7 @@ const moonLight = new THREE.DirectionalLight(0x9bb8ff, 1.6);
 scene.add(moonLight, moonLight.target);
 
 // Linterna (va en la cabeza del jugador)
-const flashlight = new THREE.SpotLight(0xfff1d0, FLASH_INTENSITY, 55, Math.PI / 7, 0.6, 1);
+const flashlight = new THREE.SpotLight(0xfff1d0, FLASH_INTENSITY, 70, Math.PI / 6, 0.6, 1);
 camera.add(flashlight);
 flashlight.target.position.set(0, 0, -5);
 camera.add(flashlight.target);
@@ -1073,11 +1072,6 @@ function startScare() {
   playScream();
   flashScreen();
 
-  // cancela el teletransporte si estaba en curso
-  teleportCtrl = null;
-  arcLine.visible = false;
-  marker.visible = false;
-
   monster.visible = true;
 }
 
@@ -1199,26 +1193,6 @@ const vrBtn = VRButton.createButton(renderer);
 vrBtn.classList.add('vr-button');
 document.body.appendChild(vrBtn);
 
-const arcMatOK = new THREE.LineBasicMaterial({ color: 0x7ad1ff, transparent: true, opacity: 0.95 });
-const arcMatBAD = new THREE.LineBasicMaterial({ color: 0xff5a5a, transparent: true, opacity: 0.95 });
-const arcGeo = new THREE.BufferGeometry().setFromPoints(new Array(ARC_STEPS).fill(0).map(() => new THREE.Vector3()));
-const arcLine = new THREE.Line(arcGeo, arcMatOK);
-arcLine.visible = false;
-arcLine.frustumCulled = false;
-scene.add(arcLine);
-
-const marker = new THREE.Mesh(
-  new THREE.RingGeometry(0.25, 0.30, 32),
-  new THREE.MeshBasicMaterial({ color: 0x7ad1ff, transparent: true, opacity: 0.9, side: THREE.DoubleSide })
-);
-marker.rotation.x = -Math.PI / 2;
-marker.visible = false;
-scene.add(marker);
-
-let teleportCtrl = null;
-let teleportValid = false;
-const teleportPoint = new THREE.Vector3();
-
 const controllerModelFactory = new XRControllerModelFactory();
 for (let i = 0; i < 2; i++) {
   // Los controles van dentro de "player" para moverse junto con el jugador
@@ -1234,20 +1208,8 @@ for (let i = 0; i < 2; i++) {
   ctrl.addEventListener('selectstart', () => {
     if (state === 'ended') { resetGame(); return; }
     if (state === 'scare') return;
-    // Gatillo derecho: flash. Gatillo izquierdo: teletransporte.
-    if (ctrl.userData.hand === 'right') { tryFlash(); return; }
-    teleportCtrl = ctrl;
-    arcLine.visible = true;
-  });
-  ctrl.addEventListener('selectend', () => {
-    if (teleportCtrl !== ctrl) return;
-    teleportCtrl = null;
-    arcLine.visible = false;
-    marker.visible = false;
-    if (teleportValid && (state === 'playing' || state === 'waiting')) {
-      const p = clampToWorld(teleportPoint.clone());
-      player.position.set(p.x, heightAt(p.x, p.z) + eyeOffset(), p.z);
-    }
+    // Gatillo derecho: flash. (El gatillo izquierdo es sprint y se lee en vrGamepadMove)
+    if (ctrl.userData.hand === 'right') tryFlash();
   });
 }
 
@@ -1264,6 +1226,7 @@ renderer.xr.addEventListener('sessionend', () => {
 
 let snapLock = false;
 let bLock = false;
+let yLock = false;
 function vrGamepadMove(dt) {
   const session = renderer.xr.getSession();
   if (!session) return;
@@ -1272,8 +1235,8 @@ function vrGamepadMove(dt) {
     const gp = src.gamepad;
     if (!gp) continue;
 
-    let x = gp.axes[2] ?? gp.axes[0] ?? 0;
-    let y = gp.axes[3] ?? gp.axes[1] ?? 0;
+    const ax = gp.axes[2] ?? gp.axes[0] ?? 0;
+    const ay = gp.axes[3] ?? gp.axes[1] ?? 0;
 
     if (src.handedness === 'right') {
       // Botón B (buttons[5] en Quest): cerrar la nota
@@ -1282,76 +1245,34 @@ function vrGamepadMove(dt) {
       bLock = bDown;
 
       // Stick derecho: giro por pasos de 30°
-      if (Math.abs(x) > 0.7 && !snapLock) {
-        player.rotation.y -= Math.sign(x) * Math.PI / 6;
+      if (Math.abs(ax) > 0.7 && !snapLock) {
+        player.rotation.y -= Math.sign(ax) * Math.PI / 6;
         snapLock = true;
-      } else if (Math.abs(x) < 0.3) {
+      } else if (Math.abs(ax) < 0.3) {
         snapLock = false;
       }
       continue;
     }
 
-    // Stick izquierdo: caminar
+    // Botón Y (buttons[5] del mando izquierdo): lanza el screamer (prueba)
+    const yDown = !!gp.buttons[5]?.pressed;
+    if (yDown && !yLock && state === 'playing') startScare();
+    yLock = yDown;
+
+    // Mando izquierdo: gatillo (o clic del stick) = sprint
+    const sprint = !!(gp.buttons[0]?.pressed || gp.buttons[3]?.pressed);
+    const speed = sprint ? VR_RUN_SPEED : VR_WALK_SPEED;
+
     const dead = 0.12;
-    if (Math.abs(x) < dead) x = 0;
-    if (Math.abs(y) < dead) y = 0;
-    if (x === 0 && y === 0) continue;
-    moveBy(-y * VR_WALK_SPEED, x * VR_STRAFE_SPEED, dt);
-  }
-}
+    const x = Math.abs(ax) < dead ? 0 : ax;
+    const y = Math.abs(ay) < dead ? 0 : ay;
 
-function updateTeleportArc() {
-  if (!teleportCtrl) return;
-  teleportValid = false;
-
-  teleportCtrl.updateMatrixWorld(true);
-  const origin = new THREE.Vector3().setFromMatrixPosition(teleportCtrl.matrixWorld);
-  const q = new THREE.Quaternion();
-  teleportCtrl.getWorldQuaternion(q);
-  const vel = new THREE.Vector3(0, 0, -1).applyQuaternion(q).normalize().multiplyScalar(ARC_SPEED);
-
-  const dt = 1 / 30;
-  const p = origin.clone();
-  const arr = arcGeo.attributes.position.array;
-  let hit = null;
-  let last = 0;
-
-  for (let i = 0; i < ARC_STEPS; i++) {
-    arr[i * 3] = p.x; arr[i * 3 + 1] = p.y; arr[i * 3 + 2] = p.z;
-    last = i;
-
-    vel.y -= ARC_GRAVITY * dt;
-    p.addScaledVector(vel, dt);
-
-    const gy = heightAt(p.x, p.z);
-    if (p.y <= gy) {
-      hit = new THREE.Vector3(p.x, gy, p.z);
-      if (i + 1 < ARC_STEPS) {
-        arr[(i + 1) * 3] = hit.x; arr[(i + 1) * 3 + 1] = hit.y; arr[(i + 1) * 3 + 2] = hit.z;
-        last = i + 1;
-      }
-      break;
+    if (LEFT_STICK_TURNS) {
+      if (x) player.rotation.y -= x * VR_TURN_SPEED * dt; // mueve la cámara
+      if (y) moveBy(-y * speed, 0, dt);
+    } else if (x || y) {
+      moveBy(-y * speed, x * VR_STRAFE_SPEED, dt);
     }
-  }
-  for (let i = last + 1; i < ARC_STEPS; i++) {
-    arr[i * 3] = arr[last * 3]; arr[i * 3 + 1] = arr[last * 3 + 1]; arr[i * 3 + 2] = arr[last * 3 + 2];
-  }
-  arcGeo.attributes.position.needsUpdate = true;
-
-  if (hit) {
-    const slopeDeg = THREE.MathUtils.radToDeg(Math.acos(terrainNormal(hit.x, hit.z).y));
-    const inside = Math.hypot(hit.x, hit.z) <= WORLD_RADIUS;
-    teleportValid = slopeDeg <= MAX_SLOPE_DEG && inside;
-
-    arcLine.material = teleportValid ? arcMatOK : arcMatBAD;
-    marker.material.color.set(teleportValid ? 0x7ad1ff : 0xff5a5a);
-
-    const c = clampToWorld(hit.clone());
-    marker.position.set(c.x, heightAt(c.x, c.z) + 0.03, c.z);
-    teleportPoint.copy(c);
-    marker.visible = true;
-  } else {
-    marker.visible = false;
   }
 }
 
@@ -1385,7 +1306,6 @@ renderer.setAnimationLoop(() => {
   if (state === 'playing' || state === 'waiting') {
     if (renderer.xr.isPresenting) {
       vrGamepadMove(dt);
-      updateTeleportArc();
     } else {
       desktopMove(dt);
     }
