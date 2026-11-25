@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>El parque</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🌳%3C/text%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="style4.css" />
+
+    <!-- Importmap: Three.js + Addons (ESM) -->
+    <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.1/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.160.1/examples/jsm/"
+      }
+    }
+    </script>
+  </head>
+  <body>
+    <!-- Portada del juego -->
+    <div id="cover">
+      <div class="card">
+        <h1>El Parque: Las 10 Notas</h1>
+        <p class="sub">Es de noche. Encuentra las 10 notas escondidas en los árboles del bosque… antes de que algo te encuentre a ti.</p>
+
+        <div class="cols">
+          <div>
+            <h2>Con gafas Meta Quest 3</h2>
+            <ul>
+              <li><b>Stick izquierdo:</b> caminar</li>
+              <li><b>Stick derecho:</b> girar</li>
+              <li><b>Gatillo izquierdo:</b> mantén y suelta para teletransportarte</li>
+              <li><b>Gatillo derecho:</b> flashear con la linterna</li>
+              <li><b>Botón B:</b> cerrar una nota</li>
+              <li><b>Cualquier gatillo:</b> reiniciar al final</li>
+            </ul>
+          </div>
+          <div>
+            <h2>En la computadora</h2>
+            <ul>
+              <li><b>W A S D / flechas:</b> caminar</li>
+              <li><b>Shift:</b> correr</li>
+              <li><b>Arrastrar el ratón:</b> mirar</li>
+              <li><b>Clic derecho:</b> flashear con la linterna</li>
+              <li><b>E:</b> cerrar una nota · <b>R:</b> reiniciar al final</li>
+            </ul>
+          </div>
+        </div>
+
+        <p class="goal">Acércate a cada nota (rodea el árbol) para leerla. Cuando juntes 5, algo comenzará a seguirte: flashéalo para ahuyentarlo, pero la linterna se quedará sin batería unos segundos.</p>
+        <p class="warn">⚠️ Contiene un susto repentino (jumpscare) con sonido fuerte. Baja el volumen si lo necesitas.</p>
+
+        <div class="vol-box">
+          <h2>Volumen</h2>
+          <label class="vol-row">Música y ambiente
+            <input type="range" min="0" max="100" value="100" class="vol-music" />
+          </label>
+          <label class="vol-row">Efectos y sustos
+            <input type="range" min="0" max="100" value="100" class="vol-fx" />
+          </label>
+        </div>
+
+        <div class="team">
+          <h2>Integrantes del equipo</h2>
+          <p>Chincoya Dominguez Guillermo — No. control: 00000000</p>
+          <p>Gutiérrez del Lojo Carlos Uriel — No. control: 00000000</p>
+          <p>Padilla Paz Luis Daniel — No. control: 00000000</p>
+        </div>
+
+        <button id="startBtn">ENTRAR AL BOSQUE</button>
+        <p class="hint">Para jugar con gafas, usa el botón "ENTER VR" de abajo a la izquierda. Ajusta el volumen antes de entrar.</p>
+      </div>
+    </div>
+
+    <!-- UI: contador de notas y batería de la linterna -->
+    <div id="hud">
+      <div class="badge"><span>Notas:</span> <b id="hitNotes">0</b> / <b id="totalNotes">0</b></div>
+      <div class="badge"><span>Linterna:</span> <div class="batt"><div id="battFill"></div></div></div>
+    </div>
+
+    <!-- Ajustes de volumen dentro del juego (computadora) -->
+    <button id="gearBtn" title="Volumen">⚙</button>
+    <div id="settings">
+      <h2>Volumen</h2>
+      <label class="vol-row">Música y ambiente
+        <input type="range" min="0" max="100" value="100" class="vol-music" />
+      </label>
+      <label class="vol-row">Efectos y sustos
+        <input type="range" min="0" max="100" value="100" class="vol-fx" />
+      </label>
+    </div>
+
+    <div id="msg"></div>
+    <div id="flash"></div>
+    <!-- Música de fondo (se inicia al entrar) -->
+    <audio id="ambient" src="assets/audio/musica.mp3" preload="auto" loop></audio>
+
+    <canvas id="scene"></canvas>
+    <script type="module" src="main4.js"></script>
+  </body>
+</html>

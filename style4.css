@@ -1,0 +1,182 @@
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  height: 100%;
+  background: #02040a;
+  color: #e9e6df;
+  font-family: Arial, Helvetica, sans-serif;
+}
+#scene {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Botón VR (de three.js) */
+.vr-button {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  z-index: 60;
+}
+
+/* HUD superior derecho */
+#hud {
+  position: fixed;
+  top: 14px;
+  right: 14px;
+  display: grid;
+  gap: 8px;
+  z-index: 10;
+}
+.badge {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 10px;
+  background: rgba(8, 8, 12, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(6px);
+  font-size: 14px;
+}
+.badge span { opacity: 0.85; }
+.badge b { font-size: 15px; color: #e8d9a8; }
+
+/* Batería de la linterna */
+.batt {
+  width: 90px;
+  height: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 3px;
+  overflow: hidden;
+}
+#battFill {
+  height: 100%;
+  width: 100%;
+  background: #e8d9a8;
+}
+#battFill.dead { background: #d94141; }
+
+/* Botón y panel de volumen dentro del juego */
+#gearBtn {
+  position: fixed;
+  top: 14px;
+  left: 14px;
+  z-index: 30;
+  width: 40px;
+  height: 40px;
+  font-size: 22px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(8, 8, 12, 0.65);
+  color: #e8d9a8;
+  cursor: pointer;
+}
+#settings {
+  position: fixed;
+  top: 62px;
+  left: 14px;
+  z-index: 30;
+  display: none;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: rgba(8, 10, 16, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+#settings.show { display: block; }
+#settings h2 { margin: 0 0 8px; font-size: 15px; color: #e8d9a8; }
+
+.vol-box { margin: 10px 0 0; }
+.vol-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 6px 0;
+  font-size: 14px;
+}
+.vol-row input[type="range"] { width: 160px; accent-color: #d94141; }
+
+/* Mensaje corto al encontrar una nota */
+#msg {
+  position: fixed;
+  top: 16%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 10px 22px;
+  border-radius: 12px;
+  background: rgba(10, 10, 14, 0.8);
+  border: 1px solid rgba(232, 217, 168, 0.6);
+  font-size: 18px;
+  color: #e8d9a8;
+  z-index: 20;
+  display: none;
+}
+#msg.show { display: block; }
+
+/* Destello del susto (solo se ve en la pantalla de la computadora) */
+#flash {
+  position: fixed;
+  inset: 0;
+  background: #fff;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 40;
+}
+
+/* Portada */
+#cover {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  overflow-y: auto;
+  background: radial-gradient(circle at 50% 30%, rgba(30, 40, 60, 0.6), rgba(2, 3, 8, 0.95));
+  backdrop-filter: blur(3px);
+}
+#cover.hidden { display: none; }
+.card {
+  max-width: 780px;
+  width: 100%;
+  text-align: center;
+  padding: 24px 28px;
+  border-radius: 18px;
+  background: rgba(8, 10, 16, 0.85);
+  border: 1px solid rgba(170, 40, 40, 0.55);
+}
+.card h1 {
+  margin: 0 0 6px;
+  font-family: Arial, Helvetica, sans-serif;
+  font-weight: bold;
+  font-size: 36px;
+  color: #d94141;
+  letter-spacing: 1px;
+}
+.card h2 { margin: 14px 0 6px; font-size: 16px; color: #e8d9a8; }
+.card .sub { margin: 0 0 10px; font-size: 15px; opacity: 0.9; line-height: 1.5; }
+.cols { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; text-align: left; }
+.cols > div { flex: 1 1 280px; }
+.cols ul { margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.7; }
+.goal { margin: 12px 0 4px; font-size: 14px; color: #e8d9a8; }
+.warn { margin: 4px 0; font-size: 13px; color: #ff8a8a; }
+.team p { margin: 2px 0; font-size: 13px; }
+.card .vol-box { display: inline-block; text-align: left; }
+#startBtn {
+  margin-top: 18px;
+  padding: 12px 30px;
+  font-size: 18px;
+  font-weight: bold;
+  border: 0;
+  border-radius: 12px;
+  background: #b52a2a;
+  color: #fff;
+  cursor: pointer;
+}
+#startBtn:hover { background: #d03a3a; }
+.hint { margin: 10px 0 0; font-size: 12px; opacity: 0.75; }
